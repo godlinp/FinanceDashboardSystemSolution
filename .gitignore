@@ -1,0 +1,27 @@
+# Build outputs
+bin/
+obj/
+
+# Rider / JetBrains
+.idea/
+
+# User secrets / environment files
+.env
+.env.*
+secrets.json
+**/secrets.json
+
+# Certificates / private keys
+*.pfx
+*.p12
+*.pem
+*.key
+
+# App configuration that may contain secrets
+appsettings.json
+appsettings.*.json
+
+# Keep templates tracked
+!appsettings.template.json
+!appsettings.example.json
+

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finance Dashboard System (Backend API) — Project Documentation</title>
+  <style>
+    :root {
+      --text: #111827;
+      --muted: #4b5563;
+      --border: #e5e7eb;
+      --bg: #ffffff;
+      --code-bg: #f3f4f6;
+      --link: #2563eb;
+    }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.45;
+      margin: 32px;
+      max-width: 980px;
+    }
+    h1 { font-size: 28px; margin: 0 0 10px; }
+    h2 { font-size: 20px; margin: 26px 0 10px; padding-top: 6px; border-top: 1px solid var(--border); }
+    h3 { font-size: 16px; margin: 18px 0 8px; }
+    p { margin: 10px 0; }
+    .meta { color: var(--muted); margin-bottom: 18px; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      overflow-x: auto;
+      border-radius: 8px;
+    }
+    code { background: var(--code-bg); padding: 1px 6px; border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f9fafb; }
+    a { color: var(--link); text-decoration: none; }
+    ul { margin: 8px 0 8px 22px; }
+    .hr { border-top: 1px solid var(--border); margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>Finance Dashboard System (Backend API) — Project Documentation</h1>
+  <div class="meta">
+    <div><strong>Project</strong>: FinanceDashboardSystemSolution</div>
+    <div><strong>Type</strong>: ASP.NET Core 8 Web API</div>
+    <div><strong>Purpose</strong>: Role-based financial records management (transactions, categories, dashboards) with phone-based OTP login and JWT authorization.</div>
+  </div>
+
+  <h2>1) Quick start</h2>
+  <h3>Prerequisites</h3>
+  <ul>
+    <li>.NET SDK 8.x</li>
+    <li>SQL Server (local install or container)</li>
+  </ul>
+
+  <h3>Configuration</h3>
+  <ul>
+    <li><strong>Connection string</strong>: <code>appsettings.json</code> → <code>ConnectionStrings:DefaultConnection</code></li>
+    <li><strong>JWT settings</strong>: <code>appsettings.json</code> → <code>Jwt:{ Key, Issuer, Audience, ExpiryDays }</code></li>
+  </ul>
+
+  <h3>Run (local)</h3>
+  <pre><code>dotnet ef database update --project FinanceDashboardSystem.csproj
+dotnet run --project FinanceDashboardSystem.csproj</code></pre>
+  <p>Swagger UI is available in development mode (see <code>Program.cs</code>).</p>
+
+  <h2>2) High-level architecture</h2>
+  <p>This project follows a straightforward layered design:</p>
+  <ul>
+    <li><strong>Controllers</strong>: HTTP endpoints + authorization attributes.</li>
+    <li><strong>Services</strong>: business logic and orchestration (dashboard aggregation, transaction rules).</li>
+    <li><strong>Repositories</strong>: data-access wrappers for EF Core queries and persistence.</li>
+    <li><strong>DbContext</strong>: EF Core model configuration + Identity integration.</li>
+    <li><strong>DTOs</strong>: request/response payload types.</li>
+    <li><strong>Models</strong>: domain entities (<code>User</code>, <code>Transaction</code>, <code>Category</code>) and enums.</li>
+    <li><strong>Middleware</strong>: centralized exception handling (<code>GlobalExceptionMiddleware</code>).</li>
+  </ul>
+
+  <h3>Dependency flow</h3>
+  <pre><code>Controller → Service → Repository → FinanceDbContext → SQL Server
+Controller → IOtpService (OTP generation/validation)</code></pre>
+
+  <h2>3) Project structure</h2>
+  <pre><code>FinanceDashboardSystemSolution/
+├── Controllers/
+│   ├── AuthController.cs
+│   ├── ViewerController.cs
+│   ├── AnalystController.cs
+│   └── AdminController.cs
+├── DbContext/
+│   └── FinanceDbContext.cs
+├── DTOs/
+├── Middleware/
+│   └── GlobalExceptionMiddleware.cs
+├── Migrations/
+├── Models/
+│   ├── User.cs
+│   ├── Transaction.cs
+│   └── Category.cs
+├── Repositories/
+│   ├── UserRepo/
+│   ├── TransactionRepo/
+│   └── CategoryRepo/
+├── Services/
+│   ├── UserService/
+│   ├── TransactionService/
+│   ├── DashboardService/
+│   └── OtpService/
+├── Program.cs
+├── appsettings.json
+└── FinanceDashboardSystem.csproj</code></pre>
+
+  <h2>4) Runtime pipeline &amp; configuration</h2>
+  <h3>Application startup (<code>Program.cs</code>)</h3>
+  <p>Key registrations:</p>
+  <ul>
+    <li><strong>EF Core</strong>: SQL Server provider using <code>DefaultConnection</code></li>
+    <li><strong>Identity</strong>: <code>User</code> + <code>IdentityRole</code> with relaxed password policy (OTP-style login)</li>
+    <li><strong>JWT Bearer auth</strong>: validates issuer/audience/signature and role claims</li>
+    <li><strong>DI</strong>: repositories + services added as scoped dependencies</li>
+    <li><strong>Swagger/OpenAPI</strong>: enabled in development with JWT security scheme</li>
+    <li><strong>Global exceptions</strong>: <code>GlobalExceptionMiddleware</code> is first in the pipeline</li>
+  </ul>
+
+  <h3>Important config keys (<code>appsettings.json</code>)</h3>
+  <ul>
+    <li><code>ConnectionStrings:DefaultConnection</code></li>
+    <li><code>Jwt:Key</code> (must be kept secret)</li>
+    <li><code>Jwt:Issuer</code></li>
+    <li><code>Jwt:Audience</code></li>
+    <li><code>Jwt:ExpiryDays</code></li>
+  </ul>
+
+  <h2>5) Authentication &amp; authorization</h2>
+  <h3>Auth mechanism</h3>
+  <p>Authentication is <strong>OTP + JWT</strong>:</p>
+  <ol>
+    <li><strong>Send OTP</strong> — <code>POST /api/auth/send-otp</code> (returns <code>referenceId</code>, <code>isExistingUser</code>, and OTP in development).</li>
+    <li><strong>Verify OTP</strong> — <code>POST /api/auth/verify</code> (returns JWT + role, auto-creates user if needed).</li>
+  </ol>
+
+  <h3>Roles</h3>
+  <table>
+    <thead>
+      <tr><th>Controller</th><th>Authorization</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>ViewerController</code></td><td><code>Viewer, Analyst, Admin</code></td></tr>
+      <tr><td><code>AnalystController</code></td><td><code>Analyst, Admin</code></td></tr>
+      <tr><td><code>AdminController</code></td><td><code>Admin</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>6) API endpoints (by controller)</h2>
+  <h3>Auth (<code>/api/auth</code>)</h3>
+  <ul>
+    <li><code>POST /send-otp</code>: generate OTP + <code>referenceId</code></li>
+    <li><code>POST /verify</code>: validate OTP, auto-create user if needed, return JWT</li>
+  </ul>
+
+  <h3>Viewer (<code>/api/viewer</code>) — roles: Viewer, Analyst, Admin</h3>
+  <ul>
+    <li><code>GET /transactions</code>: own transactions (filters: <code>categoryId</code>, <code>type</code>)</li>
+    <li><code>GET /dashboard</code>: own dashboard summary</li>
+  </ul>
+
+  <h3>Analyst (<code>/api/analyst</code>) — roles: Analyst, Admin</h3>
+  <ul>
+    <li><code>GET /transactions</code>: own transactions with date range (filters: <code>categoryId</code>, <code>type</code>, <code>startDate</code>, <code>endDate</code>)</li>
+    <li><code>GET /insights</code>: extended dashboard summary (own data)</li>
+  </ul>
+
+  <h3>Admin (<code>/api/admin</code>) — role: Admin</h3>
+  <ul>
+    <li><strong>Users</strong>: <code>GET /users</code>, <code>POST /add-users</code>, <code>PUT /users/{id}</code>, <code>DELETE /users/{id}</code></li>
+    <li><strong>Transactions</strong>: <code>GET /transactions</code>, <code>POST /transactions</code>, <code>PUT /transactions/{id}</code>, <code>DELETE /transactions/{id}</code></li>
+    <li><strong>Dashboard</strong>: <code>GET /dashboard</code> (system-wide)</li>
+    <li><strong>Categories</strong>: <code>GET /categories</code>, <code>POST /categories</code>, <code>PUT /categories/{id}</code>, <code>DELETE /categories/{id}</code></li>
+  </ul>
+
+  <h2>7) Data model (EF Core + Identity)</h2>
+  <p><code>FinanceDbContext</code> inherits <code>IdentityDbContext&lt;User&gt;</code>, so standard Identity tables exist (<code>AspNetUsers</code>, roles, claims, tokens, etc.).</p>
+
+  <h3>Domain entities</h3>
+  <ul>
+    <li><strong>Category</strong>: <code>Id</code> (int identity), <code>Name</code> (unique), <code>Description?</code></li>
+    <li><strong>Transaction</strong>: <code>Id</code> (Guid), <code>Amount</code> (decimal(18,2)), <code>Type</code> (enum stored as int), <code>CategoryId</code> FK, <code>UserId</code> FK, <code>IsDeleted</code> soft-delete</li>
+    <li><strong>User</strong>: extends Identity user, unique index on (<code>PhoneNumber</code>, <code>ReferenceId</code>)</li>
+  </ul>
+
+  <h3>Notable EF Core rules</h3>
+  <ul>
+    <li><strong>Soft delete</strong>: global query filter on transactions (<code>!IsDeleted</code>)</li>
+    <li><strong>Delete behavior</strong>: restrictive FK deletes to prevent cascades</li>
+    <li><strong>Uniqueness</strong>: categories unique by name; users unique by phone+reference</li>
+  </ul>
+
+  <h2>8) Operational notes</h2>
+  <h3>OTP storage</h3>
+  <p>OTP is stored in-memory via <code>IMemoryCache</code>. For multi-instance deployments, replace this with a shared store (e.g., Redis).</p>
+
+  <h3>Swagger authorization</h3>
+  <p>Swagger is configured with a Bearer scheme; provide the JWT token when authorizing requests.</p>
+
+  <h3>Common troubleshooting</h3>
+  <ul>
+    <li><strong>JWT Key missing</strong>: app throws at startup if <code>Jwt:Key</code> is blank.</li>
+    <li><strong>Database connection issues</strong>: verify SQL Server is running and <code>DefaultConnection</code> is correct.</li>
+    <li><strong>Unexpected “missing data”</strong>: <code>Transaction.IsDeleted</code> is globally filtered; deleted rows won’t show up in EF queries.</li>
+  </ul>
+</body>
+</html>
+
